@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VideoForge AI — Video Generator Studio</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  body { font-family: 'Inter', system-ui, sans-serif; }
+  .gradient-text { background: linear-gradient(90deg, #8b5cf6, #ec4899); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hidden { display: none !important; }
+  .modal-open { overflow: hidden; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .animate-fade { animation: fadeIn 0.35s ease-out; }
+  @keyframes pulse-ring { 0% { transform: scale(0.9); opacity: 0.7; } 50% { transform: scale(1.05); opacity: 0.3; } 100% { transform: scale(0.9); opacity: 0.7; } }
+  .pulse-ring { animation: pulse-ring 1.8s ease-in-out infinite; }
+  @keyframes shimmer { 0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; } }
+  .shimmer { background: linear-gradient(90deg, #1e293b 0%, #334155 50%, #1e293b 100%); background-size: 1000px 100%; animation: shimmer 2s infinite linear; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: #0f172a; }
+  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+  .glow { box-shadow: 0 0 30px rgba(139, 92, 246, 0.4); }
+  .glow-hover:hover { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6); }
+  .gradient-bg { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%); }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+
+<!-- ============ HEADER ============ -->
+<header class="border-b border-slate-800/80 sticky top-0 z-40 bg-slate-950/80 backdrop-blur-xl">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="bg-gradient-to-br from-violet-500 to-pink-500 p-2.5 rounded-xl shadow-lg shadow-violet-900/40">
+        <i data-lucide="clapperboard" class="w-6 h-6 text-white"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl font-black tracking-tight">Video<span class="gradient-text">Forge</span></h1>
+        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest -mt-0.5">AI Video Studio</p>
+      </div>
+    </div>
+
+    <nav class="hidden md:flex items-center gap-1 font-semibold text-slate-400 text-sm">
+      <button onclick="switchTab('studio')" id="tab-studio" class="px-4 py-2 rounded-lg hover:text-white hover:bg-slate-800/60 transition">Studio</button>
+      <button onclick="switchTab('gallery')" id="tab-gallery" class="px-4 py-2 rounded-lg hover:text-white hover:bg-slate-800/60 transition">My Videos</button>
+      <button onclick="switchTab('pricing')" id="tab-pricing" class="px-4 py-2 rounded-lg hover:text-white hover:bg-slate-800/60 transition">Pricing</button>
+    </nav>
+
+    <div class="flex items-center gap-3">
+      <div class="hidden sm:flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2">
+        <i data-lucide="coins" class="w-4 h-4 text-amber-400"></i>
+        <span id="credit-display" class="font-black text-sm">100</span>
+        <span class="text-xs text-slate-500 font-bold">credits</span>
+      </div>
+      <button onclick="openBuyCredits()" class="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 rounded-xl font-black text-sm transition shadow-lg shadow-violet-900/30">
+        <i data-lucide="plus" class="w-4 h-4"></i> Buy Credits
+      </button>
+      <div class="bg-slate-900 p-2.5 rounded-full border border-slate-800 cursor-pointer hover:border-violet-500 transition">
+        <i data-lucide="user" class="w-5 h-5 text-slate-400"></i>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ STUDIO TAB ============ -->
+<main id="view-studio" class="max-w-7xl mx-auto px-6 py-10 animate-fade">
+
+  <!-- Hero -->
+  <div class="text-center mb-12">
+    <h2 class="text-4xl md:text-5xl font-black mb-4 leading-tight">
+      Turn your <span class="gradient-text">ideas</span> into video
+    </h2>
+    <p class="text-slate-400 text-lg max-w-2xl mx-auto font-medium">
+      Describe any scene. Our AI models generate cinematic video from text, image, or script — in seconds.
+    </p>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+    <!-- LEFT: PROMPT WORKSPACE -->
+    <section class="lg:col-span-7 space-y-6">
+
+      <!-- Prompt Card -->
+      <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 backdrop-blur">
+        <div class="flex items-center justify-between mb-4">
+          <label class="text-xs font-black uppercase tracking-widest text-slate-500">Your Prompt</label>
+          <span id="char-count" class="text-xs font-bold text-slate-600">0 / 2000</span>
+        </div>
+        <textarea
+          id="prompt-input"
+          oninput="updateCharCount()"
+          rows="5"
+          placeholder="Describe your video in detail... e.g., 'A cinematic drone shot flying over a neon-lit Tokyo street at night, rain reflecting on the pavement, futuristic cars passing by, 4K, hyper-realistic.'"
+          class="w-full bg-slate-950 border border-slate-800 rounded-2xl p-5 font-medium leading-relaxed focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition resize-none text-sm"
+        ></textarea>
+
+        <!-- Prompt Presets -->
+        <div class="mt-4">
+          <p class="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-2">Quick start</p>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="applyPreset('cinematic')" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold transition">🎬 Cinematic Scene</button>
+            <button onclick="applyPreset('character')" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold transition">🧑 Character Animation</button>
+            <button onclick="applyPreset('product')" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold transition">📦 Product Demo</button>
+            <button onclick="applyPreset('nature')" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold transition">🌿 Nature Scene</button>
+            <button onclick="applyPreset('abstract')" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold transition">✨ Abstract Motion</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upload Reference -->
+      <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 backdrop-blur">
+        <label class="text-xs font-black uppercase tracking-widest text-slate-500 mb-3 block">Reference Image (Optional)</label>
+        <div id="drop-zone" class="border-2 border-dashed border-slate-700 hover:border-violet-500 rounded-2xl p-8 text-center transition cursor-pointer" onclick="document.getElementById('image-upload').click()">
+          <i data-lucide="image-plus" class="w-10 h-10 text-slate-600 mx-auto mb-3"></i>
+          <p class="text-sm font-bold text-slate-400">Drop an image or click to upload</p>
+          <p class="text-xs text-slate-600 mt-1">PNG, JPG up to 10MB</p>
+        </div>
+        <input type="file" id="image-upload" accept="image/*" class="hidden" onchange="handleImageUpload(event)" />
+        <div id="image-preview" class="hidden mt-4 relative">
+          <img id="preview-img" class="w-full h-48 object-cover rounded-2xl border border-slate-800" />
+          <button onclick="removeImage()" class="absolute top-2 right-2 bg-black/70 backdrop-blur p-2 rounded-full hover:bg-black transition">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Generate Button -->
+      <button
+        id="generate-btn"
+        onclick="generateVideo()"
+        class="w-full bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 rounded-3xl p-6 font-black text-xl transition glow glow-hover flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <i data-lucide="sparkles" class="w-6 h-6"></i>
+        Generate Video
+        <span id="cost-display" class="text-sm font-bold bg-black/30 px-3 py-1 rounded-full">25 credits</span>
+      </button>
+
+    </section>
+
+    <!-- RIGHT: SETTINGS PANEL -->
+    <aside class="lg:col-span-5 space-y-5">
+
+      <!-- Model Picker -->
+      <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 backdrop-blur">
+        <label class="text-xs font-black uppercase tracking-widest text-slate-500 mb-4 block">AI Model</label>
+        <div id="model-list" class="space-y-2"></div>
+      </div>
+
+      <!-- Aspect Ratio -->
+      <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 backdrop-blur">
+        <label class="text-xs font-black uppercase tracking-widest text-slate-500 mb-4 block">Aspect Ratio</label>
+        <div class="grid grid-cols-4 gap-2" id="aspect-list"></div>
+      </div>
+
+      <!-- Duration -->
+      <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 backdrop-blur">
+        <label class="text-xs font-black uppercase tracking-widest text-slate-500 mb-4 block">Duration: <span id="duration-val" class="text-violet-400">5s</span></label>
+        <input type="range" id="duration-slider" min="5" max="10" step="1" value="5" oninput="updateDuration()" class="w-full accent-violet-500" />
+        <div class="flex justify-between text-xs text-slate-600 font-bold mt-2">
+          <span>5s</span><span>10s</span>
+        </div>
+      </div>
+
+      <!-- Quality -->
+      <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 backdrop-blur">
+        <label class="text-xs font-black uppercase tracking-widest text-slate-500 mb-4 block">Resolution</label>
+        <div class="grid grid-cols-3 gap-2" id="quality-list"></div>
+      </div>
+
+    </aside>
+  </div>
+
+  <!-- GENERATION PROGRESS OVERLAY -->
+  <div id="progress-overlay" class="hidden fixed inset-0 bg-black/85 backdrop-blur-xl z-50 items-center justify-center">
+    <div class="text-center max-w-md w-full px-6">
+      <div class="relative w-32 h-32 mx-auto mb-8">
+        <div class="absolute inset-0 rounded-full bg-violet-500/20 pulse-ring"></div>
+        <div class="absolute inset-4 rounded-full bg-pink-500/20 pulse-ring" style="animation-delay: 0.3s"></div>
+        <div class="absolute inset-0 flex items-center justify-center">
+          <i data-lucide="clapperboard" class="w-12 h-12 text-violet-400"></i>
+        </div>
+      </div>
+      <h2 class="text-2xl font-black mb-2">Generating your video</h2>
+      <p id="progress-status" class="text-slate-400 mb-8 font-medium">Initializing model...</p>
+      <div class="h-3 bg-slate-800 rounded-full overflow-hidden mb-3">
+        <div id="progress-bar" class="h-full bg-gradient-to-r from-violet-500 to-pink-500 transition-all duration-300" style="width: 0%"></div>
+      </div>
+      <p id="progress-percent" class="text-3xl font-black text-violet-400">0%</p>
+      <button onclick="cancelGeneration()" class="mt-8 text-slate-500 hover:text-slate-300 font-bold text-sm transition">Cancel</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- ============ GALLERY TAB ============ -->
+<main id="view-gallery" class="hidden max-w-7xl mx-auto px-6 py-10 animate-fade">
+  <div class="flex items-center justify-between mb-8 flex-wrap gap-4">
+    <div>
+      <h2 class="text-3xl font-black">My Videos</h2>
+      <p class="text-slate-500 font-medium mt-1">All your generated videos in one place</p>
+    </div>
+    <button onclick="switchTab('studio')" class="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 rounded-xl font-bold text-sm transition">
+      <i data-lucide="plus" class="w-4 h-4"></i> New Video
+    </button>
+  </div>
+  <div id="gallery-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+  <div id="gallery-empty" class="text-center py-32 hidden">
+    <div class="bg-violet-900/30 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+      <i data-lucide="film" class="w-12 h-12 text-violet-400"></i>
+    </div>
+    <h3 class="text-2xl font-black mb-2">No videos yet</h3>
+    <p class="text-slate-500 mb-6">Generate your first AI video to see it here.</p>
+    <button onclick="switchTab('studio')" class="bg-violet-600 hover:bg-violet-500 px-6 py-3 rounded-xl font-black transition">Start Creating</button>
+  </div>
+</main>
+
+<!-- ============ PRICING TAB ============ -->
+<main id="view-pricing" class="hidden max-w-7xl mx-auto px-6 py-10 animate-fade">
+  <div class="text-center mb-12">
+    <h2 class="text-4xl font-black mb-4">Simple, credit-based pricing</h2>
+    <p class="text-slate-400 text-lg">Pay only for what you generate. No subscription required.</p>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+    <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-8">
+      <h3 class="text-xl font-black mb-2">Starter</h3>
+      <p class="text-4xl font-black mb-1">$10</p>
+      <p class="text-slate-500 text-sm mb-6">1,000 credits</p>
+      <ul class="space-y-3 text-sm font-medium text-slate-400 mb-8">
+        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-400"></i> ~40 video generations</li>
+        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-400"></i> All models access</li>
+        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-400"></i> 720p export</li>
+        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-400"></i> Commercial license</li>
+      </ul>
+      <button onclick="buyPlan('starter')" class="w-full bg-slate-800 hover:bg-slate-700 py-3 rounded-xl font-black transition">Get Starter</button>
+    </div>
+    <div class="bg-gradient-to-b from-violet-900/40 to-slate-900/60 border-2 border-violet-500 rounded-3xl p-8 relative glow">
+      <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-violet-500 text-white text-xs font-black px-4 py-1 rounded-full">POPULAR</div>
+      <h3 class="text-xl font-black mb-2">Pro</h3>
+      <p class="text-4xl font-black mb-1">$20</p>
+      <p class="text-slate-500 text-sm mb-6">2,000 credits</p>
+      <ul class="space-y-3 text-sm font-medium text-slate-400 mb-8">
+        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-400"></i> ~80 video generations</li>
+        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-400"></i> Priority rendering</li>
+        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-400"></i> 1080p export</li>
+        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-400"></i> Commercial license</li>
+      </ul>
+      <button onclick="buyPlan('pro')" class="w-full bg-gradient-to-r from-violet-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 py-3 rounded-xl font-black transition">Get Pro</button>
+    </div>
+    <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-8">
+      <h3 class="text-xl font-black mb-2">Studio</h3>
+      <p class="text-4xl font-black mb-1">$50</p>
+      <p class="text-slate-500 text-sm mb-6">5,000 credits</p>
+      <ul class="space-y-3 text-sm font-medium text-slate-400 mb-8">
+        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-400"></i> ~200 video generations</li>
+        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-400"></i> Fastest rendering</li>
+        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-400"></i> 4K export</li>
+        <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-green-400"></i> API access</li>
+      </ul>
+      <button onclick="buyPlan('studio')" class="w-full bg-slate-800 hover:bg-slate-700 py-3 rounded-xl font-black transition">Get Studio</button>
+    </div>
+  </div>
+</main>
+
+<!-- ============ VIDEO PLAYER MODAL ============ -->
+<div id="player-modal" class="hidden fixed inset-0 bg-black/95 z-50 items-center justify-center p-4">
+  <button onclick="closePlayer()" class="absolute top-6 right-6 p-3 bg-slate-900 hover:bg-slate-800 rounded-full transition z-10">
+    <i data-lucide="x" class="w-6 h-6"></i>
+  </button>
+  <div class="max-w-5xl w-full">
+    <div id="player-container" class="rounded-3xl overflow-hidden border-4 border-slate-800 bg-black" style="aspect-ratio:16/9;">
+      <video id="player-video" controls playsinline class="w-full h-full"></video>
+    </div>
+    <div class="mt-5">
+      <h2 id="player-title" class="text-2xl font-black"></h2>
+      <p id="player-prompt" class="text-slate-400 font-medium text-sm mt-1 line-clamp-2"></p>
+      <div class="flex items-center gap-3 mt-4">
+        <button onclick="downloadVideo()" class="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-500 rounded-xl font-black text-sm transition">
+          <i data-lucide="download" class="w-4 h-4"></i> Download
+        </button>
+        <button onclick="copyPrompt()" class="flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold text-sm transition">
+          <i data-lucide="copy" class="w-4 h-4"></i> Copy Prompt
+        </button>
+        <button onclick="deleteVideo()" class="flex items-center gap-2 px-5 py-2.5 bg-red-900/40 hover:bg-red-900/60 border border-red-800 rounded-xl font-bold text-sm text-red-300 transition">
+          <i data-lucide="trash-2" class="w-4 h-4"></i> Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let credits = parseInt(localStorage.getItem('vf_credits') || '100');
+let videos = JSON.parse(localStorage.getItem('vf_videos') || '[]');
+let selectedModel = 'wan-3';
+let selectedAspect = '16:9';
+let selectedQuality = '720p';
+let duration = 5;
+let uploadedImage = null;
+let generationTimer = null;
+let currentVideoIndex = -1;
+
+// ============================================================
+// DATA
+// ============================================================
+const MODELS = [
+  { id: 'wan-3', name: 'Wan 3.0', desc: 'Best all-rounder', cost: 25, badge: 'FAST' },
+  { id: 'kling-v3', name: 'Kling V3 Turbo', desc: 'Great motion', cost: 35, badge: 'MOTION' },
+  { id: 'veo-3', name: 'Veo 3.1', desc: 'Cinematic + audio', cost: 70, badge: 'PREMIUM' },
+  { id: 'seedance-2', name: 'Seedance 2.0', desc: 'Character focused', cost: 40, badge: 'CHARACTER' },
+  { id: 'minimax-h3', name: 'MiniMax H3', desc: 'Fast + cheap', cost: 15, badge: 'BUDGET' },
+];
+
+const ASPECTS = [
+  { id: '16:9', label: '16:9', w: 16, h: 9 },
+  { id: '9:16', label: '9:16', w: 9, h: 16 },
+  { id: '1:1', label: '1:1', w: 1, h: 1 },
+  { id: '4:3', label: '4:3', w: 4, h: 3 },
+];
+
+const QUALITIES = [
+  { id: '480p', label: '480p', cost: 0 },
+  { id: '720p', label: '720p', cost: 5 },
+  { id: '1080p', label: '1080p', cost: 15 },
+];
+
+const PRESETS = {
+  cinematic: 'A cinematic drone shot flying over a neon-lit Tokyo street at night, rain reflecting on the pavement, futuristic cars passing by, shallow depth of field, 4K, hyper-realistic, film grain.',
+  character: 'A cute cartoon girl with big expressive eyes waving at the camera, standing in a sunny meadow with flowers, gentle breeze moving her hair, warm golden lighting, Pixar animation style.',
+  product: 'A sleek smartphone rotating slowly on a marble pedestal, soft studio lighting, water droplets on the screen, cinematic product shot, shallow depth of field, luxury advertising style.',
+  nature: 'Aerial view of a lush green forest with mist rolling between ancient trees, golden morning sunlight piercing through the canopy, birds flying in the distance, peaceful and cinematic.',
+  abstract: 'Colorful liquid ink swirling in water, vibrant purple and pink and blue, slow-motion macro shot, abstract fluid dynamics, mesmerizing motion, cinematic lighting.',
+};
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  renderModels();
+  renderAspects();
+  renderQualities();
+  updateCredits();
+  updateCostDisplay();
+  renderGallery();
+  switchTab('studio');
+  lucide.createIcons();
+});
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(tab) {
+  ['studio', 'gallery', 'pricing'].forEach(t => {
+    document.getElementById('view-' + t).classList.add('hidden');
+    const btn = document.getElementById('tab-' + t);
+    if (t === tab) {
+      btn.classList.add('text-white', 'bg-slate-800/60');
+      btn.classList.remove('text-slate-400');
+    } else {
+      btn.classList.remove('text-white', 'bg-slate-800/60');
+      btn.classList.add('text-slate-400');
+    }
+  });
+  document.getElementById('view-' + tab).classList.remove('hidden');
+  document.getElementById('view-' + tab).classList.add('animate-fade');
+  if (tab === 'gallery') renderGallery();
+  lucide.createIcons();
+}
+
+// ============================================================
+// CREDITS
+// ============================================================
+function updateCredits() {
+  document.getElementById('credit-display').textContent = credits;
+  localStorage.setItem('vf_credits', credits);
+}
+
+function getCost() {
+  const model = MODELS.find(m => m.id === selectedModel);
+  const quality = QUALITIES.find(q => q.id === selectedQuality);
+  return (model.cost + quality.cost) * (duration / 5);
+}
+
+function updateCostDisplay() {
+  document.getElementById('cost-display').textContent = getCost() + ' credits';
+}
+
+// ============================================================
+// MODEL PICKER
+// ============================================================
+function renderModels() {
+  document.getElementById('model-list').innerHTML = MODELS.map(m => `
+    <button onclick="selectModel('${m.id}')" class="w-full flex items-center justify-between p-3 rounded-xl border-2 transition text-left ${selectedModel === m.id ? 'border-violet-500 bg-violet-500/10' : 'border-slate-800 hover:border-slate-700 bg-slate-950'}">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center text-[10px] font-black">${m.name.charAt(0)}</div>
+        <div>
+          <p class="font-bold text-sm">${m.name}</p>
+          <p class="text-[10px] text-slate-500">${m.desc}</p>
+        </div>
+      </div>
+      <div class="text-right">
+        <span class="text-[9px] font-black bg-slate-800 px-2 py-0.5 rounded">${m.badge}</span>
+        <p class="text-[10px] font-bold text-amber-400 mt-1">${m.cost}c</p>
+      </div>
+    </button>
+  `).join('');
+}
+
+function selectModel(id) {
+  selectedModel = id;
+  renderModels();
+  updateCostDisplay();
+}
+
+// ============================================================
+// ASPECT / QUALITY / DURATION
+// ============================================================
+function renderAspects() {
+  document.getElementById('aspect-list').innerHTML = ASPECTS.map(a => `
+    <button onclick="selectAspect('${a.id}')" class="aspect-btn p-3 rounded-xl border-2 transition flex flex-col items-center gap-1 ${selectedAspect === a.id ? 'border-violet-500 bg-violet-500/10' : 'border-slate-800 hover:border-slate-700'}">
+      <div class="border-2 border-current rounded" style="width: ${a.w >= a.h ? 28 : 28 * (a.w/a.h)}px; height: ${a.h >= a.w ? 28 : 28 * (a.h/a.w)}px;"></div>
+      <span class="text-[10px] font-black">${a.label}</span>
+    </button>
+  `).join('');
+}
+
+function selectAspect(id) {
+  selectedAspect = id;
+  renderAspects();
+}
+
+function renderQualities() {
+  document.getElementById('quality-list').innerHTML = QUALITIES.map(q => `
+    <button onclick="selectQuality('${q.id}')" class="p-3 rounded-xl border-2 transition text-center ${selectedQuality === q.id ? 'border-violet-500 bg-violet-500/10' : 'border-slate-800 hover:border-slate-700'}">
+      <p class="font-black text-sm">${q.label}</p>
+      <p class="text-[10px] text-slate-500 font-bold">+${q.cost}c</p>
+    </button>
+  `).join('');
+}
+
+function selectQuality(id) {
+  selectedQuality = id;
+  renderQualities();
+  updateCostDisplay();
+}
+
+function updateDuration() {
+  duration = parseInt(document.getElementById('duration-slider').value);
+  document.getElementById('duration-val').textContent = duration + 's';
+  updateCostDisplay();
+}
+
+// ============================================================
+// PROMPT
+// ============================================================
+function updateCharCount() {
+  const len = document.getElementById('prompt-input').value.length;
+  document.getElementById('char-count').textContent = len + ' / 2000';
+}
+
+function applyPreset(key) {
+  document.getElementById('prompt-input').value = PRESETS[key];
+  updateCharCount();
+  document.getElementById('prompt-input').focus();
+}
+
+// ============================================================
+// IMAGE UPLOAD
+// ============================================================
+function handleImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    uploadedImage = e.target.result;
+    document.getElementById('preview-img').src = uploadedImage;
+    document.getElementById('image-preview').classList.remove('hidden');
+    document.getElementById('drop-zone').classList.add('hidden');
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeImage() {
+  uploadedImage = null;
+  document.getElementById('image-preview').classList.add('hidden');
+  document.getElementById('drop-zone').classList.remove('hidden');
+  document.getElementById('image-upload').value = '';
+}
+
+// ============================================================
+// GENERATE VIDEO
+// ============================================================
+function generateVideo() {
+  const prompt = document.getElementById('prompt-input').value.trim();
+  if (!prompt) {
+    alert('Please describe your video first.');
+    document.getElementById('prompt-input').focus();
+    return;
+  }
+
+  const cost = getCost();
+  if (credits < cost) {
+    alert(`Not enough credits. You need ${cost} but have ${credits}. Buy more to continue.`);
+    openBuyCredits();
+    return;
+  }
+
+  credits -= cost;
+  updateCredits();
+
+  const overlay = document.getElementById('progress-overlay');
+  overlay.classList.remove('hidden');
+  overlay.classList.add('flex');
+  document.body.classList.add('modal-open');
+
+  const bar = document.getElementById('progress-bar');
+  const percent = document.getElementById('progress-percent');
+  const status = document.getElementById('progress-status');
+
+  const steps = [
+    { p: 8, msg: 'Connecting to model...' },
+    { p: 20, msg: 'Analyzing prompt...' },
+    { p: 35, msg: 'Generating keyframes...' },
+    { p: 50, msg: 'Rendering motion...' },
+    { p: 65, msg: 'Applying lighting...' },
+    { p: 78, msg: 'Compositing frames...' },
+    { p: 90, msg: 'Encoding video...' },
+    { p: 98, msg: 'Finalizing...' },
+  ];
+
+  let progress = 0;
+  let stepIndex = 0;
+
+  generationTimer = setInterval(() => {
+    progress += 1.5 + Math.random() * 2;
+    if (progress > 100) progress = 100;
+
+    bar.style.width = progress + '%';
+    percent.textContent = Math.floor(progress) + '%';
+
+    while (stepIndex < steps.length && progress >= steps[stepIndex].p) {
+      status.textContent = steps[stepIndex].msg;
+      stepIndex++;
+    }
+
+    if (progress >= 100) {
+      clearInterval(generationTimer);
+      status.textContent = 'Complete!';
+      setTimeout(() => finishGeneration(prompt), 600);
+    }
+  }, 80);
+}
+
+function cancelGeneration() {
+  if (generationTimer) clearInterval(generationTimer);
+  const overlay = document.getElementById('progress-overlay');
+  overlay.classList.add('hidden');
+  overlay.classList.remove('flex');
+  document.body.classList.remove('modal-open');
+  document.getElementById('progress-bar').style.width = '0%';
+  document.getElementById('progress-percent').textContent = '0%';
+}
+
+function finishGeneration(prompt) {
+  const overlay = document.getElementById('progress-overlay');
+  overlay.classList.add('hidden');
+  overlay.classList.remove('flex');
+  document.body.classList.remove('modal-open');
+
+  // Use a public-domain demo video as placeholder
+  const demoVideos = [
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+  ];
+
+  const video = {
+    id: 'v' + Date.now(),
+    prompt: prompt,
+    model: MODELS.find(m => m.id === selectedModel).name,
+    aspect: selectedAspect,
+    quality: selectedQuality,
+    duration: duration,
+    url: demoVideos[Math.floor(Math.random() * demoVideos.length)],
+    thumb: uploadedImage || null,
+    createdAt: new Date().toISOString(),
+  };
+
+  videos.unshift(video);
+  localStorage.setItem('vf_videos', JSON.stringify(videos));
+
+  document.getElementById('progress-bar').style.width = '0%';
+  document.getElementById('progress-percent').textContent = '0%';
+
+  // Show result
+  setTimeout(() => {
+    playVideo(video.id);
+  }, 300);
+}
+
+// ============================================================
+// GALLERY
+// ============================================================
+function renderGallery() {
+  const grid = document.getElementById('gallery-grid');
+  const empty = document.getElementById('gallery-empty');
+
+  if (videos.length === 0) {
+    grid.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+
+  empty.classList.add('hidden');
+  grid.innerHTML = videos.map((v, i) => `
+    <div onclick="playVideo('${v.id}')" class="bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 hover:border-violet-600 transition cursor-pointer group">
+      <div class="relative aspect-video bg-slate-950 flex items-center justify-center">
+        <img src="${v.thumb || 'https://images.unsplash.com/photo-1536240478700-b869070f9279?w=600'}" class="w-full h-full object-cover opacity-60" />
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-center justify-center">
+          <div class="bg-white/90 group-hover:bg-white rounded-full p-3 transition group-hover:scale-110">
+            <i data-lucide="play" class="w-6 h-6 text-violet-600 ml-0.5"></i>
+          </div>
+        </div>
+        <div class="absolute bottom-2 right-2 bg-black/70 backdrop-blur text-white text-[10px] font-black px-2 py-1 rounded">{v.duration}s</div>
+        <div class="absolute top-2 left-2 bg-black/70 backdrop-blur text-white text-[10px] font-black px-2 py-1 rounded">{v.quality}</div>
+      </div>
+      <div class="p-4">
+        <p class="text-xs font-bold text-slate-300 line-clamp-2 leading-snug mb-2">{v.prompt}</p>
+        <div class="flex items-center justify-between text-[10px] text-slate-500 font-bold">
+          <span>{v.model}</span>
+          <span>{new Date(v.createdAt).toLocaleDateString()}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  lucide.createIcons();
+}
+
+// ============================================================
+// PLAYER
+// ============================================================
+function playVideo(id) {
+  const v = videos.find(x => x.id === id);
+  if (!v) return;
+  currentVideoIndex = videos.indexOf(v);
+
+  const modal = document.getElementById('player-modal');
+  const video = document.getElementById('player-video');
+  video.src = v.url;
+  video.load();
+  document.getElementById('player-title').textContent = v.model + ' • ' + v.quality + ' • ' + v.duration + 's';
+  document.getElementById('player-prompt').textContent = v.prompt;
+
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  document.body.classList.add('modal-open');
+  video.play().catch(() => {});
+  lucide.createIcons();
+}
+
+function closePlayer() {
+  const video = document.getElementById('player-video');
+  video.pause();
+  video.currentTime = 0;
+  const modal = document.getElementById('player-modal');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+  document.body.classList.remove('modal-open');
+}
+
+function downloadVideo() {
+  const v = videos[currentVideoIndex];
+  if (!v) return;
+  const a = document.createElement('a');
+  a.href = v.url;
+  a.download = 'video-' + v.id + '.mp4';
+  a.target = '_blank';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function copyPrompt() {
+  const v = videos[currentVideoIndex];
+  if (!v) return;
+  navigator.clipboard.writeText(v.prompt).then(() => {
+    alert('Prompt copied to clipboard!');
+  });
+}
+
+function deleteVideo() {
+  if (!confirm('Delete this video?')) return;
+  videos.splice(currentVideoIndex, 1);
+  localStorage.setItem('vf_videos', JSON.stringify(videos));
+  closePlayer();
+  renderGallery();
+}
+
+// ============================================================
+// PRICING
+// ============================================================
+function openBuyCredits() {
+  switchTab('pricing');
+}
+
+function buyPlan(plan) {
+  const creditsMap = { starter: 1000, pro: 2000, studio: 5000 };
+  const priceMap = { starter: '$10', pro: '$20', studio: '$50' };
+  const amount = creditsMap[plan];
+  if (confirm(`Purchase ${plan} plan for ${priceMap[plan]}?\n\nThis will add ${amount} credits.\n\n(In production, this connects to Stripe Checkout.)`)) {
+    credits += amount;
+    updateCredits();
+    alert(`✅ ${amount} credits added! You now have ${credits} credits.`);
+    switchTab('studio');
+  }
+}
+
+// ============================================================
+// ESC / CLEANUP
+// ============================================================
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closePlayer(); cancelGeneration(); }
+});
+</script>
+
+</body>
+</html>
